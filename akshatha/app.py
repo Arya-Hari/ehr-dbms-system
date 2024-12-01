@@ -27,9 +27,7 @@ def mainPage():
     cursor.execute("SELECT * FROM logininfo WHERE username = %s", (session['username'],))
     user_details = cursor.fetchone()
     
-    return render_template('main.html', user_details=user_details)
-
-
+    return render_template('home.html', user_details=user_details)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -37,34 +35,36 @@ def register():
         username = request.form['usernameInput']
         password = request.form['passwordInput']
         
-        if username == "" or password == "":
+        if not username or not password:
             flash("All fields are required!", category="error")
             return redirect(url_for('register'))
         
         if len(password) <= 10:
-            flash("Password must be at least 10 characters")
+            flash("Password must be at least 10 characters", category="error")
             return redirect(url_for('register'))
         
-        # Check if the username already exists
         cursor.execute("SELECT * FROM logininfo WHERE username = %s", (username,))
         if cursor.fetchone():
-            flash("Error: Username already in use")
+            flash("Error: Username already in use", category="error")
             return redirect(url_for('register'))
         
-        # Hash the password before storing it
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
-        # Insert new user with hashed password into logininfo
-        sql = "INSERT INTO logininfo (username, password) VALUES (%s, %s)"
-        cursor.execute(sql, (username, hashed_password))
-        mySqlConnect.commit()
+        try:
+            # Inserting into both tables in a single transaction
+            cursor.execute("INSERT INTO logininfo (username, password) VALUES (%s, %s)", (username, hashed_password))
+            cursor.execute("INSERT INTO user_details (username) VALUES (%s)", (username,))
+            mySqlConnect.commit()
+            
+            # Set session and flash message early
+            session['username'] = username
+            flash("Registration successful! You are now logged in.", category="success")
+        except Exception as e:
+            mySqlConnect.rollback()
+            flash("An error occurred during registration.", category="error")
+            return redirect(url_for('register'))
         
-        # Insert the username into user_details with default values for other fields
-        cursor.execute("INSERT INTO user_details (username) VALUES (%s)", (username,))
-        mySqlConnect.commit()
-        
-        flash("Registration successful! Please log in.", category="success")
-        return redirect(url_for('login'))
+        return redirect(url_for('mainPage'))
     
     return render_template('register.html')
 
@@ -92,8 +92,6 @@ def login():
             flash("Login Unsuccessful: Username or Password Incorrect", category="error")
             return redirect(url_for('login'))
     return render_template('login.html')
-
-
 
 @app.route('/home')
 def home():
@@ -124,41 +122,35 @@ def enter_details():
         today = datetime.today()
         age = today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
 
-# Ensure bmi is a float and age is an int
+        # Ensure bmi is a float and age is an int
         bmi = float(bmi)
         age = int(age)
 
-# Check if the user already has details in the 'user_details' table
+        # Check if the user already has details in the 'user_details' table
         cursor.execute("SELECT * FROM user_details WHERE username = %s", (username,))
         existing_user = cursor.fetchone()
 
         if existing_user:
-    # Update existing record
+            # Update existing record
             sql_update = """
-    UPDATE user_details
-    SET name = %s, dob = %s, weight = %s, height = %s, bmi = %s, age = %s
-    WHERE username = %s
-    """
+                UPDATE user_details
+                SET name = %s, dob = %s, weight = %s, height = %s, bmi = %s, age = %s
+                WHERE username = %s
+            """
             cursor.execute(sql_update, (name, dob, weight, height, bmi, age, username))
         else:
-    # Insert new record if not found
+            # Insert new record if not found
             sql_insert = """
-    INSERT INTO user_details (username, name, dob, weight, height, bmi, age)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """
+                INSERT INTO user_details (username, name, dob, weight, height, bmi, age)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
             cursor.execute(sql_insert, (username, name, dob, weight, height, bmi, age))
 
         mySqlConnect.commit()
         
-        # Display a success message and show the "Go to Home" option
-        #flash("Details accepted successfully!", category="success")
         return render_template('enter_details.html', success=True)  # Passing success to trigger the message display
     
     return render_template('enter_details.html')
-
-
-
-
 
 @app.route('/view_details')
 def view_details():
@@ -170,7 +162,7 @@ def view_details():
     username = session['username']
 
     # Query the database for the user's details
-    cursor.execute("SELECT name, dob,age, weight, height, bmi FROM user_details WHERE username = %s", (username,))
+    cursor.execute("SELECT name, DATE_FORMAT(dob, '%d-%m-%Y'), age, weight, height, bmi FROM user_details WHERE username = %s", (username,))
     user_details = cursor.fetchone()
 
     if user_details:
