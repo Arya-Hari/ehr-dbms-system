@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <title>Home</title>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">MediVault</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <div class="ms-auto">
+                    <a href="{{ url_for('view_patient_profile') }}" class="btn btn-primary mx-2">View Profile</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div style="padding: 20px;">
+        <!-- Display Access Key -->
+        <div class="alert alert-info" id="access-key-container">
+            Your access key is : <span>{{access_key}}</span>
+            <br>Provide this key to the pharmacy/laboratory to allow them to access your records.
+        </div>
+
+        <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="book-appointments" type="button" role="tab" aria-controls="book"
+                    aria-selected="true">Book Appointment</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="previous-appointments" type="button" role="tab" aria-controls="previous"
+                    aria-selected="false">Previous Appointments</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="book" role="tabpanel" aria-labelledby="book-appointments"
+                style="padding: 20px;">
+                <h3>Book an Appointment</h3>
+                <table class="table table-striped" id="doctor-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Hospital</th>
+                            <th>Specialisation</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Doctor rows will be inserted here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="previous" role="tabpanel" aria-labelledby="previous-appointments"
+                style="padding: 20px;">
+                <h3>Previous Appointments</h3>
+                <table class="table table-striped" id="previous-appointments-table">
+                    <thead>
+                        <tr>
+                            <th>Doctor</th>
+                            <th>Hospital</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Appointment rows will be inserted here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-w76A2Y1pflbNH31RQnxBhZQ5CtZ4zj+O2zF0rR9EeChvMDG69V7CFe7hhYlgPwr1"
+        crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tab navigation functionality
+            const triggerTabList = document.querySelectorAll('.nav-tabs button');
+            triggerTabList.forEach(triggerEl => {
+                triggerEl.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const tabId = this.getAttribute('aria-controls');
+
+                    // Remove active class from all buttons and tabs
+                    triggerTabList.forEach(el => el.classList.remove('active'));
+                    document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.remove('show', 'active'));
+
+                    // Add active class to clicked button and corresponding tab
+                    this.classList.add('active');
+                    const tabPane = document.getElementById(tabId);
+                    tabPane.classList.add('show', 'active');
+                });
+            });
+
+            // Fetch previous appointments
+            document.getElementById('previous-appointments').addEventListener('click', function () {
+                fetch('/api/previous_appointments')
+                    .then(response => response.json())
+                    .then(data => {
+                        const tableBody = document.querySelector('#previous-appointments-table tbody');
+                        tableBody.innerHTML = ''; // Clear previous rows
+                        if (data.appointments && data.appointments.length > 0) {
+                            data.appointments.forEach(appointment => {
+                                const row = `
+                            <tr>
+                                <td>${appointment.doctor}</td>
+                                <td>${appointment.hospital}</td>
+                                <td>${appointment.date}</td>
+                                <td>${appointment.time}</td>
+                                <td>${appointment.status}</td>
+                            </tr>
+                        `;
+                                tableBody.innerHTML += row;
+                            });
+                        } else {
+                            tableBody.innerHTML = '<tr><td colspan="5">No previous appointments</td></tr>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching appointments:', error);
+                        const tableBody = document.querySelector('#previous-appointments-table tbody');
+                        tableBody.innerHTML = '<tr><td colspan="5">Failed to load appointments</td></tr>';
+                    });
+            });
+
+            // Fetch doctors for booking appointments
+            document.getElementById('book-appointments').addEventListener('click', function () {
+                fetch('/api/doctors')
+                    .then(response => response.json())
+                    .then(data => {
+                        const tableBody = document.querySelector('#doctor-table tbody');
+                        tableBody.innerHTML = ''; // Clear previous rows
+                        if (data.doctors) {
+                            data.doctors.forEach(doctor => {
+                                const row = `
+                            <tr>
+                                <td>${doctor.name}</td>
+                                <td>${doctor.hospital}</td>
+                                <td>${doctor.specialisation}</td>
+                                <td>
+                                    <a href="/book/${doctor.id}" class="btn btn-primary">Book Appointment</a>
+                                </td>
+                            </tr>
+                        `;
+                                tableBody.innerHTML += row;
+                            });
+                        } else {
+                            tableBody.innerHTML = '<tr><td colspan="4">No doctors available</td></tr>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching doctors:', error);
+                        const tableBody = document.querySelector('#doctor-table tbody');
+                        tableBody.innerHTML = '<tr><td colspan="4">Failed to load doctors</td></tr>';
+                    });
+            });
+
+            // Automatically load doctors on page load
+            fetch('/api/doctors')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.querySelector('#doctor-table tbody');
+                    tableBody.innerHTML = ''; // Clear previous rows
+                    if (data.doctors) {
+                        data.doctors.forEach(doctor => {
+                            const row = `
+                        <tr>
+                            <td>${doctor.name}</td>
+                            <td>${doctor.hospital}</td>
+                            <td>${doctor.specialisation}</td>
+                            <td>
+                                <a href="/book/${doctor.id}" class="btn btn-primary">Book Appointment</a>
+                            </td>
+                        </tr>
+                    `;
+                            tableBody.innerHTML += row;
+                        });
+                    } else {
+                        tableBody.innerHTML = '<tr><td colspan="4">No doctors available</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching doctors:', error);
+                    const tableBody = document.querySelector('#doctor-table tbody');
+                    tableBody.innerHTML = '<tr><td colspan="4">Failed to load doctors</td></tr>';
+                });
+        });
+    </script>
+
+
+</body>
+
+</html>
