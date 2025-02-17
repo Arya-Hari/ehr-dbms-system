@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Details</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h2>Patient Details</h2>
+        {% if patient %}
+            <ul class="list-group">
+                <li class="list-group-item"><strong>Name:</strong> {{ patient[0] }} {{ patient[1] }}</li>
+                <li class="list-group-item"><strong>Gender:</strong> {{ patient[2] }}</li>
+                <li class="list-group-item"><strong>Age:</strong> {{ patient[3] }}</li>
+                <li class="list-group-item"><strong>Height:</strong> {{ patient[4] }} cm</li>
+                <li class="list-group-item"><strong>Weight:</strong> {{ patient[5] }} kg</li>
+                <li class="list-group-item"><strong>BMI:</strong> {{ patient[6] }}</li>
+                <li class="list-group-item"><strong>Blood Type:</strong> {{ patient[7] }}</li>
+            </ul>
+
+            <h5 class="mt-4">Prescribed Drugs</h5>
+            {% if drugs %}
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Symptoms</th>
+                            <th>Drug Name</th>
+                            <th>Dosage</th>
+                            <th>Frequency</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for drug in drugs %}
+                            <tr>
+                                <td>{{ drug[0] }}</td>
+                                <td>{{ drug[1] }}</td>
+                                <td>{{ drug[2] }}</td>
+                                <td>{{ drug[3] }}</td>
+                                <td>{{ drug[4] }}</td>
+                                <td>{{ drug[5] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-danger">No prescribed drugs found.</p>
+            {% endif %}
+            
+	 <h3 class="mt-4">Tests</h3>
+            {% if tests %}
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Test Name</th>
+                            <th>Test Date</th>
+                            <th>Test Image</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for test in tests %}
+                            <tr>
+                                <td>{{ test.test_name }}</td>
+                                <td>{{ test.date }}</td>
+                                <td>
+                                    {% if test.image_path %}
+                                      <img src="{{ url_for('uploaded_file', filename=test.image_path.split('/')[-1]) }}" alt="Test Image" style="max-width: 200px; height: auto;">
+                                    {% else %}
+                                        <p class="text-muted">No image available</p>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-danger">No tests found.</p>
+            {% endif %}
+
+            <a href="/start_appointment/{{ patient[8] }}" class="btn btn-secondary mt-3">Back to Appointment</a>
+        {% else %}
+            <p class="text-danger">No patient details found.</p>
+        {% endif %}
+    </div>
+</body>
+
+</html>
