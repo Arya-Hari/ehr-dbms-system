@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratory Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">MediVault</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <div class="ms-auto">
+                    <a href="{{ url_for('laboratory_reset_access') }}" class="btn btn-primary mx-2">Go Back</a>
+                    <a href="{{ url_for('pharmacy_laboratory_login') }}" class="btn btn-primary mx-2">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="card p-4 mb-4">
+            <h2 class="text-center">Laboratory Dashboard</h2>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Access Key Form -->
+        {% if not access_granted %}
+            <div class="card mb-4 p-3">
+                <h5>Enter Access Key</h5>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="access_key" class="form-label">Access Key</label>
+                        <input type="text" class="form-control" id="access_key" name="access_key" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        {% else %}
+            <!-- Display Test Details -->
+            <div class="card mb-4 p-3">
+                <h5 class="mb-3">Test Details</h5>
+                {% if test_details %}
+                    <p><strong>Doctor ID:</strong> {{ test_details[0] }}</p>
+                    <p><strong>Test Suggested:</strong> {{ test_details[1] }}</p>
+                {% else %}
+                    <p class="text-danger">No test details available for the selected patient.</p>
+                {% endif %}
+            </div>
+
+            <!-- Form for Adding Test Data -->
+            <div class="card mb-4 p-3">
+                <h5 class="mb-3">Add Test Data</h5>
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="access_key" value="{{ session.get('access_key') }}">
+
+                    <div class="mb-3">
+                        <label for="test_date" class="form-label">Test Date</label>
+                        <input type="date" class="form-control" id="test_date" name="test_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Upload Scan Image</label>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="metadata" class="form-label">Metadata</label>
+                        <textarea class="form-control" id="metadata" name="metadata" rows="3" placeholder="Enter any additional information..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" name="upload_test">Save Test</button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
